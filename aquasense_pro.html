@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaSense Pro — Smart Irrigation Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f6f2;
+    --surface: #ffffff;
+    --surface2: #f0f3ee;
+    --border: #d8ddd4;
+    --text: #1a2218;
+    --muted: #5a6857;
+    --accent: #2d6a4f;
+    --accent-light: #e8f4ee;
+    --warn: #b5650d;
+    --warn-light: #fff3e0;
+    --danger: #b91c1c;
+    --danger-light: #fef2f2;
+    --blue: #1a56a0;
+    --blue-light: #eff6ff;
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .logo span { font-weight: 300; opacity: 0.75; font-size: 12px; margin-left: 4px; }
+  .badge-version {
+    background: rgba(255,255,255,0.18);
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ── Layout ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 56px);
+  }
+
+  /* ── Sidebar ── */
+  aside {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 1.5rem 1.25rem;
+    overflow-y: auto;
+  }
+  .sidebar-section { margin-bottom: 1.5rem; }
+  .sidebar-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+  }
+
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; margin-top: 10px; }
+  label:first-of-type { margin-top: 0; }
+
+  select, input[type="number"], input[type="text"] {
+    width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  select:focus, input:focus { border-color: var(--accent); }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    margin: 6px 0;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .slider-val {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    min-width: 42px;
+    text-align: right;
+  }
+
+  hr.divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1.25rem 0;
+  }
+
+  .run-btn {
+    width: 100%;
+    padding: 11px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: 0.01em;
+    transition: background 0.15s, transform 0.1s;
+    margin-top: 1.25rem;
+  }
+  .run-btn:hover { background: #235c41; }
+  .run-btn:active { transform: scale(0.98); }
+
+  /* ── Main ── */
+  main {
+    padding: 1.75rem 2rem;
+    overflow-y: auto;
+  }
+
+  .page-title {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    color: var(--text);
+  }
+  .page-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 3px;
+    margin-bottom: 1.5rem;
+  }
+
+  /* ── Decision Panel ── */
+  .decision-panel {
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1.5px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+  }
+  .decision-panel.irrigate { background: var(--danger-light); border-color: #fca5a5; }
+  .decision-panel.delay    { background: var(--accent-light); border-color: #a7f3d0; }
+  .decision-panel.monitor  { background: var(--warn-light);   border-color: #fed7aa; }
+
+  .decision-icon {
+    font-size: 40px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .decision-text { flex: 1; }
+  .decision-action {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+  .decision-main {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin: 2px 0 6px;
+    color: var(--text);
+  }
+  .decision-sub { font-size: 13px; color: var(--muted); }
+
+  .confidence-wrap { text-align: right; flex-shrink: 0; }
+  .confidence-num {
+    font-size: 36px;
+    font-weight: 600;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: -0.04em;
+    line-height: 1;
+  }
+  .confidence-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .conf-bar {
+    width: 80px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 6px 0 0 auto;
+    overflow: hidden;
+  }
+  .conf-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent);
+    transition: width 0.5s ease;
+  }
+
+  /* ── KPI Grid ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .kpi-label {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .kpi-value {
+    font-size: 22px;
+    font-weight: 600;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: -0.03em;
+    margin-top: 4px;
+    color: var(--text);
+  }
+  .kpi-unit { font-size: 13px; font-weight: 400; color: var(--muted); margin-left: 2px; }
+
+  /* ── Signals ── */
+  .section-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .signals-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 1.5rem;
+  }
+  .signal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .signal-emoji { font-size: 20px; flex-shrink: 0; line-height: 1.2; }
+  .signal-content { flex: 1; min-width: 0; }
+  .signal-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .signal-body { font-size: 12px; color: var(--muted); line-height: 1.4; }
+
+  .signal-vote {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+  }
+  .vote-irrigate { background: var(--danger-light); color: var(--danger); }
+  .vote-delay    { background: var(--accent-light); color: var(--accent); }
+  .vote-monitor  { background: var(--warn-light);   color: var(--warn); }
+  .vote-neutral  { background: var(--surface2);     color: var(--muted); }
+
+  /* ── Water Info ── */
+  .water-info {
+    background: var(--blue-light);
+    border: 1px solid #bfdbfe;
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    font-size: 13px;
+    color: var(--blue);
+    margin-bottom: 1.5rem;
+  }
+
+  /* ── Idle state ── */
+  .idle-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 400px;
+    color: var(--muted);
+  }
+  .idle-icon { font-size: 48px; margin-bottom: 1rem; }
+  .idle-title { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .idle-sub { font-size: 13px; max-width: 300px; line-height: 1.6; }
+
+  /* ── Crop tag ── */
+  .crop-tag {
+    display: inline-block;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 20px;
+    margin-right: 6px;
+    margin-bottom: 4px;
+  }
+
+  /* ── Footer ── */
+  footer {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    text-align: center;
+    padding: 12px;
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    grid-column: 1 / -1;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    💧 AquaSense Pro
+    <span>Smart Irrigation · India-First</span>
+  </div>
+  <div class="badge-version">v4.0 · 8-Signal Engine</div>
+</header>
+
+<div class="layout">
+
+<!-- ── Sidebar ── -->
+<aside>
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">🌾 Farm Settings</div>
+    <label>Crop</label>
+    <select id="cropSel">
+      <option value="Paddy">Paddy</option>
+      <option value="Wheat" selected>Wheat</option>
+      <option value="Maize">Maize</option>
+      <option value="Sugarcane">Sugarcane</option>
+      <option value="Cotton">Cotton</option>
+      <option value="Groundnut">Groundnut</option>
+      <option value="Soybean">Soybean</option>
+      <option value="Tomato">Tomato</option>
+      <option value="Onion">Onion</option>
+      <option value="Potato">Potato</option>
+      <option value="Mustard">Mustard</option>
+      <option value="Barley">Barley</option>
+      <option value="Pearl Millet">Pearl Millet</option>
+      <option value="Sorghum">Sorghum</option>
+      <option value="Chickpea">Chickpea</option>
+      <option value="Banana">Banana</option>
+      <option value="Mango">Mango</option>
+    </select>
+
+    <label>Soil Type</label>
+    <select id="soilSel">
+      <option>Sandy</option>
+      <option>Sandy Loam</option>
+      <option value="Loam" selected>Loam</option>
+      <option>Clay Loam</option>
+      <option>Clay</option>
+      <option>Silt Loam</option>
+      <option>Black Cotton</option>
+    </select>
+
+    <label>Farm Area (ha)</label>
+    <input type="number" id="farmArea" value="1.0" min="0.01" step="0.25">
+  </div>
+
+  <hr class="divider">
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">📡 Sensor Readings</div>
+
+    <label>Soil Moisture (%)</label>
+    <div class="slider-row">
+      <input type="range" id="smSlider" min="0" max="100" step="1" value="45">
+      <span class="slider-val" id="smVal">45%</span>
+    </div>
+
+    <label>Soil Temperature (°C)</label>
+    <div class="slider-row">
+      <input type="range" id="stSlider" min="10" max="50" step="1" value="26">
+      <span class="slider-val" id="stVal">26°C</span>
+    </div>
+
+    <label>Air Temperature (°C)</label>
+    <div class="slider-row">
+      <input type="range" id="atSlider" min="10" max="48" step="1" value="32">
+      <span class="slider-val" id="atVal">32°C</span>
+    </div>
+
+    <label>Humidity (%)</label>
+    <div class="slider-row">
+      <input type="range" id="humSlider" min="10" max="100" step="1" value="55">
+      <span class="slider-val" id="humVal">55%</span>
+    </div>
+
+    <label>EC / Salinity (mS/cm)</label>
+    <div class="slider-row">
+      <input type="range" id="ecSlider" min="0" max="5" step="0.1" value="0.8">
+      <span class="slider-val" id="ecVal">0.8</span>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="sidebar-section">
+    <div class="sidebar-label">🌦️ Weather (manual)</div>
+
+    <label>Rain forecast — 24h (mm)</label>
+    <div class="slider-row">
+      <input type="range" id="rain24Slider" min="0" max="60" step="0.5" value="2">
+      <span class="slider-val" id="rain24Val">2mm</span>
+    </div>
+
+    <label>Rain forecast — 48h (mm)</label>
+    <div class="slider-row">
+      <input type="range" id="rain48Slider" min="0" max="80" step="0.5" value="4">
+      <span class="slider-val" id="rain48Val">4mm</span>
+    </div>
+
+    <label>Wind Speed (m/s)</label>
+    <div class="slider-row">
+      <input type="range" id="windSlider" min="0" max="15" step="0.5" value="2">
+      <span class="slider-val" id="windVal">2</span>
+    </div>
+
+    <label>Historical Rain Probability (%)</label>
+    <div class="slider-row">
+      <input type="range" id="histProbSlider" min="0" max="100" step="1" value="30">
+      <span class="slider-val" id="histProbVal">30%</span>
+    </div>
+  </div>
+
+  <button class="run-btn" onclick="runPrediction()">⚡ Run Prediction</button>
+
+</aside>
+
+<!-- ── Main ── -->
+<main id="mainContent">
+  <div class="idle-state">
+    <div class="idle-icon">💧</div>
+    <div class="idle-title">AquaSense Pro</div>
+    <div class="idle-sub">Set your sensor values in the sidebar and click <strong>Run Prediction</strong> to get an 8-signal irrigation recommendation.</div>
+  </div>
+</main>
+
+</div>
+
+<footer>
+  AquaSense Pro v4.0 · 8-Signal Fusion · FAO-56 ETc · Hargreaves-Samani ETo · ESP32/Arduino Ready · Twilio Alert Integration
+</footer>
+
+<script>
+/* ════════════════════════════════════════════
+   CROP DATABASE — FAO-56 Parameters
+   ════════════════════════════════════════════ */
+const CROP_DB = {
+  "Paddy":       { moisture: 65.0, temp: 30.0, Kc: 1.20, root_depth_m: 0.15, critical: "Flowering",    ecSafe: 0.8 },
+  "Wheat":       { moisture: 50.0, temp: 24.0, Kc: 1.10, root_depth_m: 0.60, critical: "Heading",      ecSafe: 1.6 },
+  "Maize":       { moisture: 55.0, temp: 27.0, Kc: 1.15, root_depth_m: 0.80, critical: "Silking",      ecSafe: 1.1 },
+  "Sugarcane":   { moisture: 65.0, temp: 28.0, Kc: 1.25, root_depth_m: 0.90, critical: "Grand Growth", ecSafe: 1.0 },
+  "Cotton":      { moisture: 40.0, temp: 32.0, Kc: 1.10, root_depth_m: 1.00, critical: "Boll Form.",   ecSafe: 2.0 },
+  "Groundnut":   { moisture: 42.0, temp: 30.0, Kc: 1.05, root_depth_m: 0.50, critical: "Pegging",      ecSafe: 1.5 },
+  "Soybean":     { moisture: 48.0, temp: 28.0, Kc: 1.15, root_depth_m: 0.60, critical: "Pod Fill",     ecSafe: 1.2 },
+  "Tomato":      { moisture: 60.0, temp: 26.0, Kc: 1.15, root_depth_m: 0.60, critical: "Fruiting",     ecSafe: 0.8 },
+  "Onion":       { moisture: 48.0, temp: 25.0, Kc: 1.00, root_depth_m: 0.30, critical: "Bulbing",      ecSafe: 0.8 },
+  "Potato":      { moisture: 50.0, temp: 22.0, Kc: 1.10, root_depth_m: 0.40, critical: "Tuber Init.",  ecSafe: 1.0 },
+  "Mustard":     { moisture: 42.0, temp: 22.0, Kc: 1.00, root_depth_m: 0.60, critical: "Flowering",    ecSafe: 1.2 },
+  "Barley":      { moisture: 42.0, temp: 20.0, Kc: 1.05, root_depth_m: 0.50, critical: "Heading",      ecSafe: 2.5 },
+  "Pearl Millet":{ moisture: 35.0, temp: 32.0, Kc: 0.95, root_depth_m: 0.60, critical: "Grain Fill",   ecSafe: 1.2 },
+  "Sorghum":     { moisture: 38.0, temp: 30.0, Kc: 1.00, root_depth_m: 0.80, critical: "Grain Fill",   ecSafe: 1.2 },
+  "Chickpea":    { moisture: 42.0, temp: 20.0, Kc: 0.95, root_depth_m: 0.60, critical: "Flowering",    ecSafe: 1.2 },
+  "Banana":      { moisture: 70.0, temp: 28.0, Kc: 1.20, root_depth_m: 0.50, critical: "Bunch Dev.",   ecSafe: 1.2 },
+  "Mango":       { moisture: 45.0, temp: 30.0, Kc: 0.90, root_depth_m: 1.20, critical: "Fruit Dev.",   ecSafe: 1.2 },
+};
+
+const SOIL_FC = { "Sandy":15, "Sandy Loam":22, "Loam":30, "Clay Loam":38, "Clay":45, "Silt Loam":33, "Black Cotton":42 };
+const SOIL_WP = { "Sandy":6,  "Sandy Loam":10, "Loam":14, "Clay Loam":20, "Clay":27, "Silt Loam":15, "Black Cotton":22 };
+
+/* ── Slider sync ── */
+const sliders = [
+  ["smSlider","smVal",v=>v+"%"],
+  ["stSlider","stVal",v=>v+"°C"],
+  ["atSlider","atVal",v=>v+"°C"],
+  ["humSlider","humVal",v=>v+"%"],
+  ["ecSlider","ecVal",v=>parseFloat(v).toFixed(1)],
+  ["rain24Slider","rain24Val",v=>v+"mm"],
+  ["rain48Slider","rain48Val",v=>v+"mm"],
+  ["windSlider","windVal",v=>v],
+  ["histProbSlider","histProbVal",v=>v+"%"],
+];
+sliders.forEach(([sid,vid,fmt])=>{
+  const s=document.getElementById(sid), v=document.getElementById(vid);
+  s.addEventListener("input",()=>{ v.textContent=fmt(s.value); });
+});
+
+/* ════════════════════════════════════════════
+   ETo — FAO-56 Hargreaves-Samani
+   ════════════════════════════════════════════ */
+function computeETo(Tmax, Tmin, Tmean, humidity, wind=2.0) {
+  const doy = Math.floor((new Date() - new Date(new Date().getFullYear(),0,0)) / 86400000);
+  const lat_rad = 0.35;
+  const dr = 1 + 0.033 * Math.cos(2*Math.PI*doy/365);
+  const delta = 0.409 * Math.sin(2*Math.PI*doy/365 - 1.39);
+  const ws = Math.acos(-Math.tan(lat_rad)*Math.tan(delta));
+  const Ra = (24*60/Math.PI)*0.0820*dr*(
+    ws*Math.sin(lat_rad)*Math.sin(delta) +
+    Math.cos(lat_rad)*Math.cos(delta)*Math.sin(ws)
+  );
+  let eto = 0.0023 * Ra * (Tmean + 17.8) * Math.sqrt(Math.max(0, Tmax - Tmin));
+  if (humidity > 50) eto *= Math.max(0.5, 1 - 0.004*(humidity - 50));
+  return Math.max(0.5, eto);
+}
+
+function computeIrrMm(sm, thr, soilType, rootM) {
+  const FC = SOIL_FC[soilType] || 30;
+  const WP = SOIL_WP[soilType] || 14;
+  const thetaCur = WP + (sm/100)*(FC-WP);
+  const thetaTgt = Math.min(WP + (thr/100)*(FC-WP)+5, FC);
+  return Math.max(0, (thetaTgt - thetaCur)/100*rootM*1000);
+}
+
+/* ════════════════════════════════════════════
+   MAIN PREDICTION ENGINE
+   ════════════════════════════════════════════ */
+function computePrediction(inputs) {
+  const { sm, stemp, airTemp, humidity, ec, crop, soil, farmHa, rain24, rain48, wind, histProb } = inputs;
+  const ci = CROP_DB[crop] || CROP_DB["Wheat"];
+  const thrSm = ci.moisture;
+  const thrT  = ci.temp;
+  const Kc    = ci.Kc;
+  const rootD = ci.root_depth_m;
+  const ecSafe = ci.ecSafe;
+  const deficit = thrSm - sm;
+
+  const signals = [];
+  let irrScore=0, delScore=0, totW=0;
+
+  /* Signal 1 — Soil Moisture (W=35) */
+  const W1=35; totW+=W1;
+  if(deficit>15){
+    irrScore+=W1;
+    signals.push({icon:"💧",title:"Soil Moisture — Critical",
+      body:`${sm.toFixed(1)}% vs ${thrSm}% threshold. Deficit ${deficit.toFixed(1)}pp.`,
+      vote:"IRRIGATE",weight:W1});
+  } else if(deficit>5){
+    irrScore+=W1*0.70;
+    signals.push({icon:"💧",title:"Soil Moisture — Low",
+      body:`${sm.toFixed(1)}% vs ${thrSm}%. Irrigate soon.`,
+      vote:"IRRIGATE",weight:W1*0.70});
+  } else if(deficit>0){
+    irrScore+=W1*0.35;
+    signals.push({icon:"💧",title:"Soil Moisture — Marginal",
+      body:`${sm.toFixed(1)}% vs ${thrSm}%. Monitor closely.`,
+      vote:"MONITOR",weight:W1*0.35});
+  } else if(sm>thrSm+15){
+    delScore+=W1;
+    signals.push({icon:"💧",title:"Soil Moisture — Saturated",
+      body:`${sm.toFixed(1)}% — well above ${thrSm}%. No irrigation needed.`,
+      vote:"DELAY",weight:W1});
+  } else {
+    delScore+=W1*0.80;
+    signals.push({icon:"💧",title:"Soil Moisture — Adequate",
+      body:`${sm.toFixed(1)}% above ${thrSm}% threshold.`,
+      vote:"DELAY",weight:W1*0.80});
+  }
+
+  /* Signal 2 — Soil Temperature (W=8) */
+  const W2=8; totW+=W2;
+  const tex=stemp-thrT;
+  if(tex>5){
+    irrScore+=W2;
+    signals.push({icon:"🌡️",title:`Soil Temp — High (${stemp}°C)`,
+      body:`Exceeds ${thrT}°C by ${tex.toFixed(1)}°C. Cooling irrigation beneficial.`,
+      vote:"IRRIGATE",weight:W2});
+  } else if(tex>2){
+    irrScore+=W2*0.5;
+    signals.push({icon:"🌡️",title:`Soil Temp — Slightly Elevated`,
+      body:`${stemp}°C slightly above ${thrT}°C threshold.`,
+      vote:"MONITOR",weight:W2*0.5});
+  } else {
+    delScore+=W2*0.4;
+    signals.push({icon:"🌡️",title:`Soil Temp — OK (${stemp}°C)`,
+      body:`Within range (threshold ${thrT}°C).`,
+      vote:"DELAY",weight:W2*0.4});
+  }
+
+  /* Signal 3 — EC / Salinity (W=7) */
+  const W3=7; totW+=W3;
+  if(ec>ecSafe*1.5){
+    irrScore+=W3*0.8;
+    signals.push({icon:"⚡",title:"EC — High Salinity",
+      body:`EC ${ec.toFixed(2)} mS/cm >> safe ${ecSafe} mS/cm. Leaching needed.`,
+      vote:"IRRIGATE",weight:W3*0.8});
+  } else if(ec>ecSafe){
+    irrScore+=W3*0.3;
+    signals.push({icon:"⚡",title:"EC — Moderate",
+      body:`EC ${ec.toFixed(2)} mS/cm above safe ${ecSafe} mS/cm. Monitor.`,
+      vote:"MONITOR",weight:W3*0.3});
+  } else {
+    delScore+=W3*0.3;
+    signals.push({icon:"⚡",title:"EC — Normal",
+      body:`EC ${ec.toFixed(2)} mS/cm within safe range (≤${ecSafe} mS/cm).`,
+      vote:"DELAY",weight:W3*0.3});
+  }
+
+  /* Signal 4 — ETc Demand (W=15) */
+  const W4=15; totW+=W4;
+  const Tmax=airTemp+4, Tmin=airTemp-6;
+  const eto = computeETo(Tmax, Tmin, airTemp, humidity, wind);
+  const etc = eto * Kc;
+  const irrMm = computeIrrMm(sm, thrSm, soil, rootD);
+  if(etc>6){
+    irrScore+=W4;
+    signals.push({icon:"☀️",title:`ETc — Very High (${etc.toFixed(1)} mm/day)`,
+      body:`ETo=${eto.toFixed(1)}×Kc=${Kc}=ETc ${etc.toFixed(1)} mm/day. Est. ${irrMm.toFixed(1)} mm needed.`,
+      vote:"IRRIGATE",weight:W4});
+  } else if(etc>4){
+    irrScore+=W4*0.6;
+    signals.push({icon:"☀️",title:`ETc — Moderate (${etc.toFixed(1)} mm/day)`,
+      body:`ETo=${eto.toFixed(1)}×Kc=${Kc}=ETc ${etc.toFixed(1)} mm/day. Monitor closely.`,
+      vote:"MONITOR",weight:W4*0.6});
+  } else {
+    delScore+=W4*0.5;
+    signals.push({icon:"☀️",title:`ETc — Low (${etc.toFixed(1)} mm/day)`,
+      body:`Low evaporative demand. ETo=${eto.toFixed(1)} mm/day.`,
+      vote:"DELAY",weight:W4*0.5});
+  }
+
+  /* Signal 5 — 48h Forecast (W=25) */
+  const W5=25; totW+=W5;
+  if(rain24>10){
+    delScore+=W5;
+    signals.push({icon:"🌧️",title:`Heavy Rain 24h (${rain24}mm)`,
+      body:`${rain24}mm next 24h / ${rain48}mm in 48h. Do NOT irrigate.`,
+      vote:"DELAY",weight:W5});
+  } else if(rain24>5){
+    delScore+=W5*0.80;
+    signals.push({icon:"🌦️",title:`Moderate Rain 24h (${rain24}mm)`,
+      body:`${rain24}mm forecast. Delay if possible.`,
+      vote:"DELAY",weight:W5*0.80});
+  } else if(rain24>1){
+    delScore+=W5*0.35;
+    signals.push({icon:"🌂",title:`Light Rain 24h (${rain24}mm)`,
+      body:`Light rain reduces irrigation need partially.`,
+      vote:"MONITOR",weight:W5*0.35});
+  } else {
+    irrScore+=W5*0.55;
+    signals.push({icon:"⛅",title:`No Rain in 48h (${rain48}mm total)`,
+      body:`Only ${rain48}mm over 48h. No significant rain expected.`,
+      vote:"IRRIGATE",weight:W5*0.55});
+  }
+
+  /* Signal 6 — Historical Climatology (W=10) */
+  const W6=10; totW+=W6;
+  if(histProb>=70){
+    delScore+=W6;
+    signals.push({icon:"📅",title:`High Rain Probability (${histProb}%)`,
+      body:`Historically ${histProb}% chance of rain. Delay advised.`,
+      vote:"DELAY",weight:W6});
+  } else if(histProb>=40){
+    delScore+=W6*0.5;
+    signals.push({icon:"📅",title:`Moderate Rain Probability (${histProb}%)`,
+      body:`${histProb}% historical rain chance. Monitor.`,
+      vote:"MONITOR",weight:W6*0.5});
+  } else {
+    irrScore+=W6*0.4;
+    signals.push({icon:"📅",title:`Low Rain Probability (${histProb}%)`,
+      body:`Only ${histProb}% historical chance. Typically dry.`,
+      vote:"IRRIGATE",weight:W6*0.4});
+  }
+
+  /* Signal 7 — Humidity (W=5) */
+  const W7=5; totW+=W7;
+  if(humidity>85){
+    delScore+=W7*0.6;
+    signals.push({icon:"💦",title:`High Humidity (${humidity}%)`,
+      body:"High RH reduces evapotranspiration demand.",
+      vote:"DELAY",weight:W7*0.6});
+  } else if(humidity<30){
+    irrScore+=W7;
+    signals.push({icon:"🏜️",title:`Very Low Humidity (${humidity}%)`,
+      body:"Low RH accelerates soil drying. Urgency elevated.",
+      vote:"IRRIGATE",weight:W7});
+  } else {
+    signals.push({icon:"💦",title:`Normal Humidity (${humidity}%)`,
+      body:"No humidity correction applied.",
+      vote:"NEUTRAL",weight:0});
+    totW-=W7;
+  }
+
+  /* Signal 8 — Wind / Demand modifier (W=5) */
+  const W8=5; totW+=W8;
+  if(wind>8){
+    irrScore+=W8;
+    signals.push({icon:"💨",title:`High Wind (${wind} m/s)`,
+      body:"Strong wind increases evaporation. Higher irrigation demand.",
+      vote:"IRRIGATE",weight:W8});
+  } else if(wind<1.5){
+    delScore+=W8*0.4;
+    signals.push({icon:"💨",title:`Calm Conditions (${wind} m/s)`,
+      body:"Low wind reduces evaporative loss.",
+      vote:"DELAY",weight:W8*0.4});
+  } else {
+    signals.push({icon:"💨",title:`Moderate Wind (${wind} m/s)`,
+      body:"Normal wind — no correction applied.",
+      vote:"NEUTRAL",weight:0});
+    totW-=W8;
+  }
+
+  /* Confidence & Decision */
+  let confidence = totW>0 ? Math.max(0, Math.min(100, (irrScore/totW)*100)) : 50;
+
+  let action, decision;
+  if(deficit>20 && rain24<5){
+    decision="🚨 Irrigate Immediately"; action="IRRIGATE"; confidence=Math.max(confidence,85);
+  } else if(ec>ecSafe*1.5){
+    decision="⚡ Leach — High Salinity"; action="IRRIGATE"; confidence=Math.max(confidence,80);
+  } else if(confidence>=62){
+    decision="💧 Irrigate Now"; action="IRRIGATE";
+  } else if(confidence<=35){
+    decision = rain24>10 ? "🟢 Delay — Rain Forecast" : "✅ No Irrigation Needed"; action="DELAY";
+  } else {
+    if(rain24>5){ decision="🟡 Delay — Monitor Closely"; action="MONITOR"; }
+    else if(sm<thrSm){ decision="🟡 Optional Irrigation"; action="MONITOR"; }
+    else { decision="🟡 Monitor — Borderline"; action="MONITOR"; }
+  }
+
+  const irrL = irrMm * farmHa * 10000;
+  const savedL = (action==="DELAY" && rain24>0) ? rain24*farmHa*10000 : 0;
+
+  return { action, decision, confidence, signals, eto, etc, irrMm, irrL, savedL, deficit, rain24, rain48, irrScore, delScore, totW };
+}
+
+/* ════════════════════════════════════════════
+   RENDER
+   ════════════════════════════════════════════ */
+function runPrediction() {
+  const crop   = document.getElementById("cropSel").value;
+  const soil   = document.getElementById("soilSel").value;
+  const farmHa = parseFloat(document.getElementById("farmArea").value) || 1.0;
+  const sm     = parseFloat(document.getElementById("smSlider").value);
+  const stemp  = parseFloat(document.getElementById("stSlider").value);
+  const airTemp= parseFloat(document.getElementById("atSlider").value);
+  const humidity=parseFloat(document.getElementById("humSlider").value);
+  const ec     = parseFloat(document.getElementById("ecSlider").value);
+  const rain24 = parseFloat(document.getElementById("rain24Slider").value);
+  const rain48 = parseFloat(document.getElementById("rain48Slider").value);
+  const wind   = parseFloat(document.getElementById("windSlider").value);
+  const histProb=parseFloat(document.getElementById("histProbSlider").value);
+
+  const r = computePrediction({ sm, stemp, airTemp, humidity, ec, crop, soil, farmHa, rain24, rain48, wind, histProb });
+  const ci = CROP_DB[crop] || CROP_DB["Wheat"];
+
+  const panelClass = r.action==="IRRIGATE" ? "irrigate" : r.action==="DELAY" ? "delay" : "monitor";
+  const confColor  = r.confidence>=62 ? "#b91c1c" : r.confidence<=35 ? "#2d6a4f" : "#b5650d";
+  const now = new Date().toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"});
+
+  const voteHTML = (vote) => {
+    const map = { IRRIGATE:"vote-irrigate", DELAY:"vote-delay", MONITOR:"vote-monitor", NEUTRAL:"vote-neutral" };
+    return `<span class="signal-vote ${map[vote]||'vote-neutral'}">${vote}</span>`;
+  };
+
+  const signalCards = r.signals.map(s=>`
+    <div class="signal-card">
+      <div class="signal-emoji">${s.icon}</div>
+      <div class="signal-content">
+        <div class="signal-title">${s.title}</div>
+        <div class="signal-body">${s.body}</div>
+      </div>
+      ${voteHTML(s.vote)}
+    </div>
+  `).join("");
+
+  const waterLine = r.action==="IRRIGATE"
+    ? `<div class="water-info">💧 Recommended irrigation: <strong>${r.irrMm.toFixed(1)} mm</strong> ≈ <strong>${(r.irrL/1000).toFixed(1)} kL</strong> for ${farmHa} ha — apply between 05:00–07:00 or after 18:00 to minimize evaporation losses.</div>`
+    : r.savedL>0
+    ? `<div class="water-info">🌧️ Estimated water saved by delaying: <strong>${(r.savedL/1000).toFixed(1)} kL</strong> — forecast rain should meet crop needs.</div>`
+    : "";
+
+  document.getElementById("mainContent").innerHTML = `
+    <div class="page-title">Irrigation Prediction</div>
+    <div class="page-sub">
+      <span class="crop-tag">${crop}</span>
+      <span class="crop-tag">${soil}</span>
+      ${now} · Critical period: ${ci.critical}
+    </div>
+
+    <div class="decision-panel ${panelClass}">
+      <div class="decision-icon">${r.action==="IRRIGATE" ? "💧" : r.action==="DELAY" ? "✅" : "🟡"}</div>
+      <div class="decision-text">
+        <div class="decision-action">${r.action}</div>
+        <div class="decision-main">${r.decision}</div>
+        <div class="decision-sub">
+          Score: ${r.irrScore.toFixed(0)} irrigate · ${r.delScore.toFixed(0)} delay · ${r.totW.toFixed(0)} total weight
+        </div>
+      </div>
+      <div class="confidence-wrap">
+        <div class="confidence-num" style="color:${confColor}">${r.confidence.toFixed(0)}<span style="font-size:18px">%</span></div>
+        <div class="confidence-label">confidence</div>
+        <div class="conf-bar"><div class="conf-fill" style="width:${r.confidence}%;background:${confColor}"></div></div>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Soil Deficit</div>
+        <div class="kpi-value">${Math.abs(r.deficit).toFixed(1)}<span class="kpi-unit">pp</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">ETc Demand</div>
+        <div class="kpi-value">${r.etc.toFixed(1)}<span class="kpi-unit">mm/day</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Rain 24h</div>
+        <div class="kpi-value">${r.rain24.toFixed(1)}<span class="kpi-unit">mm</span></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Irrig. Volume</div>
+        <div class="kpi-value">${(r.irrL/1000).toFixed(1)}<span class="kpi-unit">kL</span></div>
+      </div>
+    </div>
+
+    ${waterLine}
+
+    <div class="section-title">8-Signal Breakdown</div>
+    <div class="signals-grid">${signalCards}</div>
+  `;
+}
+</script>
+</body>
+</html>
